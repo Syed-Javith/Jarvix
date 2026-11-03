@@ -1,0 +1,28 @@
+flowchart TD
+    subgraph ReadViewStructure["InnoDB-Style MVCC ReadView"]
+        RV1["creator_txn_id: TxnId of the reader"]
+        RV2["low_limit_id: min(active_txns) - all txns &lt; low are committed & visible"]
+        RV3["high_limit_id: max_txn_id + 1 - all txns &gt;= high are uncommitted & invisible"]
+        RV4["active_txns: HashSet&lt;TxnId&gt; - in-flight txns when ReadView was created"]
+    end
+
+    subgraph VisibilityCheck["ReadView::is_visible(created_by_txn_id)"]
+        START["Evaluate tuple's created_by_txn_id"]
+        C1{"created_by == creator_txn_id?"}
+        C2{"created_by &lt; low_limit_id?"}
+        C3{"created_by &gt;= high_limit_id?"}
+        C4{"active_txns.contains(created_by)?"}
+        
+        VIS["VISIBLE<br/>Tuple is read directly from heap"]
+        INVIS["INVISIBLE<br/>Follow undo_ptr to reconstruct older version"]
+    end
+
+    START --> C1
+    C1 -->|Yes: Own changes always visible| VIS
+    C1 -->|No| C2
+    C2 -->|Yes: Committed before ReadView creation| VIS
+    C2 -->|No| C3
+    C3 -->|Yes: Started after ReadView created| INVIS
+    C3 -->|No| C4
+    C4 -->|Yes: Was still running when ReadView created| INVIS
+    C4 -->|No: Committed before ReadView creation| VIS

@@ -1,0 +1,62 @@
+classDiagram
+    class Statement {
+        <<enumeration>>
+        CreateTable
+        DropTable
+        CreateIndex
+        Select
+        Insert
+        Update
+        Delete
+    }
+
+    class BoundStatement {
+        <<enumeration>>
+        CreateTable
+        DropTable
+        CreateIndex
+        Select
+        Insert
+        Update
+        Delete
+    }
+
+    class BoundExpr {
+        <<enumeration>>
+        Literal(Value)
+        ColumnRef(col_idx, col_name, data_type)
+        BinaryOp(left, op, right, return_type)
+        UnaryOp(op, expr, return_type)
+        +return_type() DataType
+    }
+
+    class LogicalPlan {
+        <<enumeration>>
+        CreateTable
+        DropTable
+        CreateIndex
+        Insert
+        Update
+        Delete
+        SeqScan
+        IndexScan
+        Projection
+        Limit
+    }
+
+    class SemanticAnalyzer {
+        +analyze(stmt: &Statement, catalog: &Catalog) Result~BoundStatement~
+        -bind_expr(expr: &Expr, schema: &Schema) Result~BoundExpr~
+    }
+
+    class QueryOptimizer {
+        +optimize(bound: BoundStatement, catalog: &Catalog) Result~LogicalPlan~
+        -optimize_scan(table_oid, table_name, filter, catalog) LogicalPlan
+        -extract_index_match(expr, indexes) Option
+    }
+
+    Statement ..> SemanticAnalyzer : Input AST
+    SemanticAnalyzer ..> BoundStatement : Produces
+    BoundStatement *-- BoundExpr
+    BoundStatement ..> QueryOptimizer : Input Bound AST
+    QueryOptimizer ..> LogicalPlan : Produces Optimized Plan

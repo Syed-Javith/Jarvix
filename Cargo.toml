@@ -1,0 +1,50 @@
+[workspace]
+members = [
+    "crates/jarvix-common",
+    "crates/jarvix-storage",
+    "crates/jarvix-buffer",
+    "crates/jarvix-wal",
+    "crates/jarvix-index",
+    "crates/jarvix-txn",
+    "crates/jarvix-catalog",
+    "crates/jarvix-sql",
+    "crates/jarvix-analyzer",
+    "crates/jarvix-optimizer",
+    "crates/jarvix-executor",
+    "crates/jarvix-protocol",
+    "crates/jarvix-server",
+    "crates/jarvix-cli",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Jarvix Database Engine Team"]
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/jarvix-db/jarvix"
+
+[workspace.dependencies]
+# Internal workspace crates
+jarvix-common = { path = "crates/jarvix-common" }
+jarvix-storage = { path = "crates/jarvix-storage" }
+jarvix-buffer = { path = "crates/jarvix-buffer" }
+jarvix-wal = { path = "crates/jarvix-wal" }
+jarvix-index = { path = "crates/jarvix-index" }
+jarvix-txn = { path = "crates/jarvix-txn" }
+jarvix-catalog = { path = "crates/jarvix-catalog" }
+jarvix-sql = { path = "crates/jarvix-sql" }
+jarvix-analyzer = { path = "crates/jarvix-analyzer" }
+jarvix-optimizer = { path = "crates/jarvix-optimizer" }
+jarvix-executor = { path = "crates/jarvix-executor" }
+jarvix-protocol = { path = "crates/jarvix-protocol" }
+jarvix-server = { path = "crates/jarvix-server" }
+
+# External core dependencies
+thiserror = "2.0"
+byteorder = "1.5"
+bytes = "1.9"
+crossbeam-channel = "0.5"
+tracing = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

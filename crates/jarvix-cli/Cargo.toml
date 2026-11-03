@@ -1,0 +1,22 @@
+[package]
+name = "jarvix-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "jarvix-cli"
+path = "src/main.rs"
+
+[dependencies]
+jarvix-common.workspace = true
+jarvix-catalog.workspace = true
+jarvix-sql.workspace = true
+jarvix-analyzer.workspace = true
+jarvix-optimizer.workspace = true
+jarvix-executor.workspace = true
+jarvix-protocol.workspace = true
+jarvix-server.workspace = true
+jarvix-txn.workspace = true
+byteorder.workspace = true

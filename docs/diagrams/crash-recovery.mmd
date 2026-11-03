@@ -1,0 +1,32 @@
+flowchart TD
+    CRASH["System Crash or Power Loss Event"] --> BOOT["Database Kernel Boots: JarvixServer::new()"]
+    BOOT --> CHECK{"Does jarvix.wal exist and have data?"}
+
+    CHECK -->|No| NORMAL["Normal startup without recovery"]
+    CHECK -->|Yes| REC["RecoveryManager::recover() - ARIES 3-Phase Algorithm"]
+
+    subgraph Phase1["Phase 1: Analysis Pass"]
+        P1A["Scan WAL forward from start to EOF"]
+        P1B["Identify 'Active Transactions' at crash time"]
+        P1C["Mark transactions that committed or aborted as RESOLVED"]
+        P1D["All remaining active transactions are classified as LOSERS"]
+    end
+
+    subgraph Phase2["Phase 2: Redo Pass (Repeat History)"]
+        P2A["Scan WAL forward from smallest active LSN"]
+        P2B["Re-apply all logged Insert/Update/Delete operations to heap pages"]
+        P2C["Update page LSN to record LSN"]
+        P2D["Restores database to EXACT physical state at moment of crash"]
+    end
+
+    subgraph Phase3["Phase 3: Undo Pass (Roll Back Losers)"]
+        P3A["Scan WAL backward from largest loser LSN"]
+        P3B["Undo uncommitted operations using before_image bytes"]
+        P3C["Write Compensation Log Records (CLRs) with undo_next_lsn"]
+        P3D["Prevents repeated undo operations if crash occurs during recovery!"]
+    end
+
+    REC --> Phase1
+    Phase1 --> Phase2
+    Phase2 --> Phase3
+    Phase3 --> READY["Recovery Complete: Database is 100% ACID consistent!"]

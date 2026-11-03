@@ -1,0 +1,66 @@
+flowchart TD
+    common["jarvix-common\n(Zero internal deps)"]
+    storage["jarvix-storage"]
+    buffer["jarvix-buffer"]
+    wal["jarvix-wal"]
+    index["jarvix-index"]
+    txn["jarvix-txn"]
+    catalog["jarvix-catalog"]
+    sql["jarvix-sql"]
+    analyzer["jarvix-analyzer"]
+    optimizer["jarvix-optimizer"]
+    executor["jarvix-executor"]
+    protocol["jarvix-protocol"]
+    server["jarvix-server"]
+    cli["jarvix-cli"]
+
+    storage --> common
+    buffer --> storage
+    buffer --> common
+    wal --> common
+    index --> buffer
+    index --> storage
+    index --> common
+    txn --> wal
+    txn --> common
+    catalog --> common
+    sql --> common
+    analyzer --> sql
+    analyzer --> catalog
+    analyzer --> common
+    optimizer --> analyzer
+    optimizer --> catalog
+    optimizer --> sql
+    optimizer --> common
+    executor --> optimizer
+    executor --> analyzer
+    executor --> sql
+    executor --> catalog
+    executor --> txn
+    executor --> wal
+    executor --> index
+    executor --> buffer
+    executor --> storage
+    executor --> common
+    protocol --> common
+    server --> protocol
+    server --> executor
+    server --> optimizer
+    server --> analyzer
+    server --> sql
+    server --> catalog
+    server --> txn
+    server --> wal
+    server --> index
+    server --> buffer
+    server --> storage
+    server --> common
+    cli --> server
+    cli --> protocol
+    cli --> executor
+    cli --> optimizer
+    cli --> analyzer
+    cli --> sql
+    cli --> catalog
+    cli --> txn
+    cli --> common

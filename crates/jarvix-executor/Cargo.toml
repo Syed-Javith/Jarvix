@@ -1,0 +1,20 @@
+[package]
+name = "jarvix-executor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+jarvix-common.workspace = true
+jarvix-storage.workspace = true
+jarvix-buffer.workspace = true
+jarvix-wal.workspace = true
+jarvix-index.workspace = true
+jarvix-txn.workspace = true
+jarvix-catalog.workspace = true
+jarvix-sql.workspace = true
+jarvix-analyzer.workspace = true
+jarvix-optimizer.workspace = true
+thiserror.workspace = true
+tracing.workspace = true

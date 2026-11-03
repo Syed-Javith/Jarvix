@@ -1,0 +1,26 @@
+flowchart LR
+    subgraph BenchmarkHarness["Benchmarking Framework"]
+        CFG["BenchmarkConfig<br/>(concurrency: 1..64 threads, iterations: 100k)"]
+        WORKER["Worker Threads<br/>(Simulating concurrent client workloads)"]
+        METRICS["Latency & Throughput Collector<br/>(p50, p95, p99, TPS, QPS)"]
+    end
+
+    subgraph TargetWorkloads["Workload Profiles"]
+        W1["Point Read Benchmark<br/>(IndexScan on primary key)"]
+        W2["Range Scan Benchmark<br/>(B+Tree horizontal scans)"]
+        W3["ACID Insert/Update Throughput<br/>(Strict 2PL + WAL Group Commit)"]
+        W4["Contention Benchmark<br/>(Hot-spot row locking)"]
+    end
+
+    subgraph JarvixKernel["Jarvix Database Engine Under Test"]
+        SRV["JarvixServer / In-Process Engine"]
+        BPM["BufferPoolManager (64..4096 frames)"]
+        WAL["WalManager (Group Commit Sync)"]
+    end
+
+    CFG --> WORKER
+    WORKER --> TargetWorkloads
+    TargetWorkloads --> SRV
+    SRV --> BPM
+    SRV --> WAL
+    SRV --> METRICS

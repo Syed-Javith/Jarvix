@@ -1,0 +1,31 @@
+flowchart TD
+    subgraph Pipeline["Physical Volcano Executor Pipeline"]
+        direction TB
+        PE["ProjectionExecutor<br/>Projects columns [0, 1] using schema index"]
+        IE["IndexScanExecutor<br/>Searches B+Tree with key=42 -> RecordId(page_id, slot_id)"]
+        SE["SeqScanExecutor<br/>Iterates table heap pages, decodes tuples, evaluates filter"]
+        LE["LimitExecutor<br/>Cuts off stream after limit count reached"]
+    end
+
+    subgraph DataStructures["Execution Data Structures"]
+        VB["VectorBatch<br/>Holds Vec&lt;Tuple&gt; up to 1024 rows<br/>Cache friendly SIMD/vector processing"]
+        TUP["Tuple<br/>values: Vec&lt;Value&gt;<br/>rid: Option&lt;RecordId&gt;"]
+        VB *-- TUP
+    end
+
+    subgraph ExecutionSubsystems["Underlying Kernel Subsystems"]
+        BPM["BufferPoolManager<br/>fetch_page() / fetch_page_mut()"]
+        BTREE["BTreeIndex<br/>search(key) -> Option&lt;RecordId&gt;"]
+        LM["LockManager<br/>acquire_table(Shared / Exclusive)"]
+        WM["WalManager<br/>append_record(LogRecord)"]
+    end
+
+    PE -->|calls next()| IE
+    IE -->|looks up key| BTREE
+    IE -->|fetches page| BPM
+    IE -->|acquires 2PL Shared lock| LM
+    IE -->|emits| VB
+    PE -->|emits projected| VB
+
+    SE -->|fetches pages sequentially| BPM
+    SE -->|acquires 2PL Shared lock| LM

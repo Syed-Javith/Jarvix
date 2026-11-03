@@ -1,0 +1,45 @@
+flowchart TB
+    subgraph Clients["Clients & Tools"]
+        CLI["jarvix-cli\n(Native Terminal REPL)"]
+        PSQL["psql\n(PostgreSQL Official CLI)"]
+        APP["Third-Party Drivers\n(JDBC / Python psycopg2 / ORMs)"]
+    end
+
+    subgraph Network["Wire Protocol Layer"]
+        TCP["TCP Listener (Port 5432)"]
+        PROTO["PostgreSQL v3 Wire Protocol\n(Handshake, Query, RowDescription, DataRow)"]
+    end
+
+    subgraph Core["Database Kernel Core"]
+        SQL["SQL Compiler Pipeline\n(Lexer -> Parser -> Analyzer -> Optimizer)"]
+        EXEC["Vectorized Volcano Execution Engine\n(VectorBatch: Scans, Projections, Filters, DML)"]
+        CATALOG["Relational System Catalog\n(Tables, Schemas, Columns, Indexes)"]
+        TXN["Transaction & ACID Subsystem\n(Strict 2PL, MVCC ReadView, UndoLog)"]
+    end
+
+    subgraph Storage["Storage & Durability Engine"]
+        BPM["Buffer Pool Manager\n(Clock Replacer, 8 KB Frames, RAII Guards)"]
+        BTREE["B+Tree Index Manager\n(Dynamic Root Expansion, Sibling Scans)"]
+        SLOTTED["Slotted Page Storage\n(Line Pointers, In-Page Defrag)"]
+        WAL["Write-Ahead Logging (WAL)\n(Monotonic LSN, Group Commit, ARIES Recovery)"]
+    end
+
+    subgraph Disk["Persistent Physical Storage"]
+        DB_FILE[("jarvix.db\n(Heap Pages)")]
+        WAL_FILE[("jarvix.wal\n(WAL Append Log)")]
+    end
+
+    CLI -->|In-Process or TCP| TCP
+    PSQL -->|TCP Socket| TCP
+    APP -->|TCP Socket| TCP
+    TCP --> PROTO
+    PROTO --> SQL
+    SQL --> EXEC
+    EXEC <--> CATALOG
+    EXEC <--> TXN
+    EXEC <--> BPM
+    EXEC <--> BTREE
+    BPM <--> SLOTTED
+    SLOTTED <--> DB_FILE
+    TXN <--> WAL
+    WAL <--> WAL_FILE

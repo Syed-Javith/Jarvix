@@ -1,0 +1,34 @@
+flowchart TD
+    RawSQL["Raw SQL String: 'SELECT id, name FROM users WHERE id = 42;'"]
+
+    subgraph LexerParser["Phase 1: Lexing & Parsing (jarvix-sql)"]
+        LEX["Lexer<br/>Converts string into Token stream<br/>(SELECT, IDENT('id'), FROM, IDENT('users'), WHERE...)"]
+        PARSE["Recursive-Descent Parser<br/>Constructs Abstract Syntax Tree (AST)<br/>Statement::Select { projections, from, filter, limit }"]
+        LEX --> PARSE
+    end
+
+    subgraph SemanticAnalyzerSub["Phase 2: Semantic Analysis (jarvix-analyzer)"]
+        CAT[("System Catalog<br/>(Validate table exists, get OID,<br/>resolve column types & indices)")]
+        SEM["SemanticAnalyzer::analyze()<br/>Validates schema, checks types, binds names<br/>Produces BoundStatement::Select"]
+        CAT <--> SEM
+    end
+
+    subgraph OptimizerSub["Phase 3: Query Optimization (jarvix-optimizer)"]
+        OPT["QueryOptimizer::optimize()<br/>1. Rule: Filter Pushdown<br/>2. Rule: Index Selection (id = 42 on indexed col -> IndexScan)<br/>3. Rule: Projection Pruning<br/>Produces LogicalPlan"]
+    end
+
+    subgraph ExecutorSub["Phase 4: Physical Execution (jarvix-executor)"]
+        EXEC["ExecutionEngine::build_pipeline()<br/>Builds physical Volcano iterator tree<br/>ProjectionExecutor -> IndexScanExecutor"]
+        RUN["Executor::init() & Executor::next()<br/>Streams VectorBatch of up to 1024 Tuples"]
+        EXEC --> RUN
+    end
+
+    subgraph WireOutput["Phase 5: Wire Protocol & Client (jarvix-protocol)"]
+        WIRE["Encode PostgreSQL v3 Messages:<br/>RowDescription ('T') -> DataRow ('D') -> CommandComplete ('C')"]
+    end
+
+    RawSQL --> LEX
+    PARSE --> SEM
+    SEM --> OPT
+    OPT --> EXEC
+    RUN --> WIRE

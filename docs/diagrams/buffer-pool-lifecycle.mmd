@@ -1,0 +1,23 @@
+stateDiagram-v2
+    [*] --> FreeFrame: BufferPoolManager Initialization
+
+    FreeFrame --> PinnedFrame: fetch_page() / new_page()<br/>pin_count = 1, is_evictable = false
+    
+    PinnedFrame --> PinnedFrame: Concurrent Reader/Writer<br/>pin_count.fetch_add(1)
+    
+    PinnedFrame --> UnpinnedFrame: PageReadGuard / PageWriteGuard dropped<br/>pin_count.fetch_sub(1) == 0, is_evictable = true
+
+    UnpinnedFrame --> PinnedFrame: Cache Hit fetch_page()<br/>pin_count = 1, reference_bit = true, is_evictable = false
+
+    state ClockEvictionReplacer {
+        [*] --> CheckRefBit
+        CheckRefBit --> ClearRefBit: ref_bit == true<br/>Set ref_bit = false, advance hand
+        ClearRefBit --> CheckRefBit: Check next victim frame
+        CheckRefBit --> EvictVictim: ref_bit == false && pin_count == 0<br/>Select frame as victim!
+    }
+
+    UnpinnedFrame --> ClockEvictionReplacer: Pool Exhaustion (Need free frame)
+    
+    EvictVictim --> FlushToDisk: If is_dirty == true<br/>DiskManager::write_page()
+    FlushToDisk --> FreeFrame: Page flushed to disk
+    EvictVictim --> FreeFrame: If is_dirty == false

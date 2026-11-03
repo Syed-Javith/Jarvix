@@ -1,0 +1,34 @@
+sequenceDiagram
+    autonumber
+    participant Client as Client (psql / jarvix-cli)
+    participant Server as JarvixServer Worker
+    participant Session as ClientSession
+    participant Engine as ExecutionEngine
+
+    Client->>Server: TCP Handshake (SYN -> SYN-ACK -> ACK)
+    Server->>Session: Spawn ClientSession(stream)
+
+    opt SSL Negotiation
+        Client->>Session: SSLRequest (80877103)
+        Session-->>Client: 'N' (SSL Not Supported)
+    end
+
+    Client->>Session: StartupMessage (v3.0, user=jarvix, db=jarvix)
+    Session-->>Client: AuthenticationOk ('R', type=0)
+    Session-->>Client: ParameterStatus ('S', server_version="14.0")
+    Session-->>Client: ParameterStatus ('S', client_encoding="UTF8")
+    Session-->>Client: BackendKeyData ('K', pid, secret)
+    Session-->>Client: ReadyForQuery ('Z', status='I')
+
+    loop Command Loop
+        Client->>Session: Query ('Q', "SELECT ...")
+        Session->>Engine: Parse -> Analyze -> Optimize -> Execute
+        Engine-->>Session: ExecutionResult::Select
+        Session-->>Client: RowDescription ('T', fields)
+        Session-->>Client: DataRow ('D', values)
+        Session-->>Client: CommandComplete ('C', "SELECT 1")
+        Session-->>Client: ReadyForQuery ('Z', status='I')
+    end
+
+    Client->>Session: Terminate ('X')
+    Session->>Session: Drop connection & release resources

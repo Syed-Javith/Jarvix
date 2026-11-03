@@ -1,0 +1,34 @@
+flowchart TB
+    subgraph PageLayout["8192-Byte Slotted Page Physical Memory Layout"]
+        direction TB
+
+        subgraph Header["Physical Header (Bytes 0..24)"]
+            H0["0..8: LSN (u64) - Log Sequence Number"]
+            H1["8..12: PageId (u32)"]
+            H2["12..14: PageType (u16: Heap=1, BTreeLeaf=3, etc.)"]
+            H3["14..16: lower (u16: offset to end of ItemId array)"]
+            H4["16..18: upper (u16: offset to start of tuple data)"]
+            H5["18..20: special (u16: BTree/subsystem metadata)"]
+            H6["20..24: checksum (u32: CRC32 integrity check)"]
+        end
+
+        subgraph LinePointers["Item Pointer Array (grows forward: offset 24 -> lower)"]
+            IT0["ItemId 0: { offset: 8100, length: 92, flags: USED }"]
+            IT1["ItemId 1: { offset: 7950, length: 150, flags: USED }"]
+            IT2["ItemId 2: { offset: 7800, length: 150, flags: DEAD }"]
+        end
+
+        subgraph FreeSpace["Unallocated Free Space (between lower and upper)"]
+            FREE["free_space() = upper - lower bytes available for tuples & pointers"]
+        end
+
+        subgraph TupleStorage["Tuple Storage Area (grows backward: upper <- 8192)"]
+            T2["Tuple 2 raw bytes (offset 7800..7950)"]
+            T1["Tuple 1 raw bytes (offset 7950..8100)"]
+            T0["Tuple 0 raw bytes (offset 8100..8192)"]
+        end
+    end
+
+    Header --> LinePointers
+    LinePointers --> FreeSpace
+    FreeSpace --> TupleStorage

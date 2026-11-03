@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    participant Txn as Transaction / Executor
+    participant WAL as WalManager
+    participant Buffer as WAL In-Memory Append Buffer
+    participant Disk as Physical Disk (jarvix.wal)
+
+    Txn->>WAL: append_record(LogRecord::Insert { txn_id, rid, data })
+    Note over WAL: next_lsn.fetch_add(rec_len) -> Monotonic LSN assigned
+    WAL->>WAL: Serialize record bytes (CRC32, LSN, prev_lsn, type, data)
+    WAL->>Buffer: write_all(&record_bytes)
+    Note over WAL: In-memory write completed (Sub-microsecond latency)
+    WAL-->>Txn: Ok(assigned_lsn)
+
+    Note over Txn: Subsequent operations continue...
+
+    Txn->>WAL: flush(commit_lsn) [Enforced during COMMIT]
+    WAL->>Disk: file.write_all(&buffered_bytes)
+    WAL->>Disk: file.sync_data() (fsync syscall)
+    Note over Disk: Bits physically committed to non-volatile platter/SSD
+    WAL-->>Txn: Ok(()) [DURABILITY GUARANTEED]

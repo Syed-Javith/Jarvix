@@ -1,0 +1,35 @@
+flowchart TD
+    subgraph BTreeIndex["Disk-Backed B+Tree Node Structure"]
+        subgraph NodeHeader["BTreeNodeHeader (offset 24..40)"]
+            NH1["size: u16 (current entries)"]
+            NH2["max_size: u16 (capacity limit)"]
+            NH3["parent_page_id: u32"]
+            NH4["next_page_id: u32 (horizontal leaf sibling pointer)"]
+            NH5["prev_page_id: u32"]
+        end
+
+        subgraph LeafNode["BTreeLeafPage Layout"]
+            LEntry["Array of (Key: i64, Val: RecordId(page_id, slot_id))<br/>Maintained in sorted ascending key order"]
+        end
+
+        subgraph InternalNode["BTreeInternalPage Layout"]
+            IEntry["Array of (Key: i64, ChildPageId: u32)<br/>Key acts as separator: keys in child >= key"]
+        end
+    end
+
+    subgraph SplitLifecycle["Node Splitting & Growth Flow"]
+        INSERT["insert(key, rid)"]
+        CHECK{"Leaf has space?<br/>size < max_size"}
+        LEAF_SPLIT["Allocate new leaf page<br/>Move upper half (keys >= median) to sibling<br/>Update sibling pointers: prev <-> next"]
+        PROMOTE["Promote median key to Parent Internal Page"]
+        ROOT_SPLIT{"Is Root splitting?"}
+        NEW_ROOT["Allocate brand new Root Internal Page<br/>Set old root & new sibling as children<br/>Increment B+Tree height by 1"]
+    end
+
+    INSERT --> CHECK
+    CHECK -->|Yes| LEntry
+    CHECK -->|No| LEAF_SPLIT
+    LEAF_SPLIT --> ROOT_SPLIT
+    ROOT_SPLIT -->|Yes| NEW_ROOT
+    ROOT_SPLIT -->|No| PROMOTE
+    PROMOTE --> IEntry

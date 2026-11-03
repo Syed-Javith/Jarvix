@@ -1,0 +1,17 @@
+stateDiagram-v2
+    [*] --> Active: TransactionManager::begin()<br/>1. Assign monotonic TxnId<br/>2. Append Begin record to WAL<br/>3. Snapshot active txns -> ReadView<br/>4. State = Active
+
+    state Active {
+        [*] --> ExecutingOperations
+        ExecutingOperations --> AcquireLocks: DML statement execution
+        AcquireLocks --> ExecutingOperations: Strict 2PL locks granted (Shared/Exclusive)
+        ExecutingOperations --> LogWAL: Append physiological Insert/Update/Delete record
+        LogWAL --> ExecutingOperations: Update prev_lsn in Transaction
+    }
+
+    Active --> Committed: TransactionManager::commit()<br/>1. State = Committed<br/>2. Append Commit record to WAL<br/>3. wal_manager.flush() (Group Commit Enforced)<br/>4. Release all 2PL locks & notify waiters
+
+    Active --> Aborted: TransactionManager::abort() or Error<br/>1. State = Aborted<br/>2. Append Abort record to WAL<br/>3. Roll back in-flight changes via UndoLog<br/>4. Release all 2PL locks & notify waiters
+
+    Committed --> [*]
+    Aborted --> [*]

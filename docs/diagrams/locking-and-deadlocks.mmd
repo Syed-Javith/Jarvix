@@ -1,0 +1,29 @@
+flowchart TD
+    subgraph LockManagerStructure["Strict 2PL LockManager Architecture"]
+        TABLE["HashMap&lt;LockKey, LockRequestQueue&gt;<br/>LockKey::Table(Oid) or LockKey::Row(RecordId)"]
+        QUEUE["LockRequestQueue<br/>requests: Vec&lt;LockRequest&gt;<br/>LockRequest { txn_id, mode: Shared|Exclusive, is_granted: bool }"]
+        WFG["Wait-For Graph (WFG)<br/>HashMap&lt;TxnId, HashSet&lt;TxnId&gt;&gt;"]
+    end
+
+    subgraph LockSubsumption["Subsumption & Grant Rules"]
+        R1["1. If requesting txn already holds Exclusive -> GRANT immediately (Subsumes Shared)"]
+        R2["2. If requesting txn already holds exact mode -> GRANT immediately (Re-entrancy)"]
+        R3["3. If mode == Shared -> GRANT if all current granted locks are Shared"]
+        R4["4. If mode == Exclusive -> GRANT only if no other transaction holds locks"]
+    end
+
+    subgraph DeadlockCycleDetection["Deadlock Detection (DFS on Wait-For Graph)"]
+        ADD["Update WFG: txn_id waits on current lock holders"]
+        DFS["has_deadlock(start_txn): Depth-First Search for cycle"]
+        CYCLE{"Cycle Detected?"}
+        ABORT["Return Err(JarvixError::Deadlock(txn_id))<br/>Abort requesting transaction!"]
+        WAIT["cvar.wait(table)<br/>Sleep until lock released by other transaction"]
+    end
+
+    TABLE *-- QUEUE
+    QUEUE --> LockSubsumption
+    LockSubsumption -->|Cannot Grant| ADD
+    ADD --> DFS
+    DFS --> CYCLE
+    CYCLE -->|Yes| ABORT
+    CYCLE -->|No| WAIT

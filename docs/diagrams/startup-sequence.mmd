@@ -1,0 +1,37 @@
+sequenceDiagram
+    autonumber
+    actor Admin as Database Admin / User
+    participant CLI as jarvix-cli
+    participant Srv as JarvixServer
+    participant Disk as DiskManager
+    participant BPM as BufferPoolManager
+    participant WAL as WalManager
+    participant Rec as RecoveryManager
+    participant Cat as Catalog
+    participant Txn as TransactionManager
+    participant TCP as TcpListener
+
+    Admin->>CLI: Start Server (`--server`)
+    CLI->>Srv: JarvixServer::new(config)
+    Srv->>Disk: DiskManager::open("jarvix.db")
+    Disk-->>Srv: disk_manager handle
+    Srv->>BPM: BufferPoolManager::new(pool_size, disk_manager)
+    BPM-->>Srv: bpm handle
+    Srv->>WAL: WalManager::open("jarvix.wal")
+    WAL-->>Srv: wal_manager handle
+
+    alt WAL exists and not empty
+        Srv->>Rec: RecoveryManager::new(wal_manager, bpm)
+        Srv->>Rec: recover()
+        Note over Rec: Phase 1: Analysis (Find Active Txns)<br/>Phase 2: Redo (Roll-Forward Heap Changes)<br/>Phase 3: Undo (Rollback Losers + Write CLRs)
+        Rec-->>Srv: Recovery Complete
+    end
+
+    Srv->>Cat: Catalog::new()
+    Cat-->>Srv: catalog handle
+    Srv->>Txn: TransactionManager::new(wal_mgr, lock_mgr, undo_mgr)
+    Txn-->>Srv: txn_mgr handle
+    Srv-->>CLI: Server Bootstrapped
+    CLI->>Srv: start()
+    Srv->>TCP: TcpListener::bind("127.0.0.1:5432")
+    Note over Srv,TCP: Listening for Incoming Client Connections

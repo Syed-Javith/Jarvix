@@ -1,0 +1,12 @@
+[package]
+name = "jarvix-buffer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+jarvix-common.workspace = true
+jarvix-storage.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
